@@ -1,0 +1,39 @@
+version: "3.9"
+# Sovereign Supervisor Dispatch — docker-compose
+# Usage: docker-compose up --build
+
+services:
+  supervisor-dispatch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: sovereign-supervisor-dispatch:latest
+    container_name: sovereign-supervisor-dispatch
+    restart: unless-stopped
+    ports:
+      - "8792:8792"
+    environment:
+      SBB_MAPS_API_KEY: ${SBB_MAPS_API_KEY}
+      SBB_SLA_TARGETS_PATH: ${SBB_SLA_TARGETS_PATH}
+      SBB_DISPATCH_ALGO: ${SBB_DISPATCH_ALGO}
+      SBB_GEO_RADIUS_KM: ${SBB_GEO_RADIUS_KM}
+      SBB_API_KEY: ${SBB_API_KEY:-change-me}
+      SBB_N8N_EVENT_BUS_URL: ${SBB_N8N_EVENT_BUS_URL:-http://host.docker.internal:5678/webhook/event-bus}
+      SERVICE_PORT: 8792
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ./.data:/app/.data:rw
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8792/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - sbb-platform
+
+networks:
+  sbb-platform:
+    external: true
+    name: sbb-platform-network
